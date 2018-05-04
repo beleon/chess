@@ -33,6 +33,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - hachex
+    - containers
 
 tests:
   hachex-test:

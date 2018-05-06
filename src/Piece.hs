@@ -1,8 +1,9 @@
 module Piece where
 
 import V2
+import Util
 
-data Piece = Q | K | N | R | P | B deriving Show
+data Piece = Q | K | N | R | P | B deriving (Eq, Show)
 
 toPiece :: Char -> Maybe Piece
 toPiece 'q' = Just Q
@@ -13,13 +14,13 @@ toPiece 'p' = Just P
 toPiece 'b' = Just B
 toPiece _ = Nothing
 
-targetList :: Piece -> V2I -> [[V2I]]
-targetList K = targetListKing
-targetList Q = targetListQueen
-targetList R = targetListRook
-targetList B = targetListBishop
-targetList N = targetListKnight
-targetList P = targetListPawn
+targetList :: Piece -> Bool -> V2I -> [[V2I]]
+targetList K _               = targetListKing
+targetList Q _               = targetListQueen
+targetList R _               = targetListRook
+targetList B _               = targetListBishop
+targetList N _               = targetListKnight
+targetList P whitePlayerTurn = targetListPawn whitePlayerTurn
 
 targetListKing :: V2I -> [[V2I]]
 targetListKing v = map (filter validSquare)
@@ -65,11 +66,44 @@ targetListKnight v = map (filter validSquare)
                        ]
 
 -- Important: algorithm that filters target list expects diagonal moves last.
--- Return pawn moves for white player. Filter algorithm will flip on black
--- player turn.
-targetListPawn :: V2I -> [[V2I]]
-targetListPawn v = map (filter validSquare)
-                     [ [ v + up, v + up + up ]
-                     , [ v + up + left       ]
-                     , [ v + up + right      ]
-                     ]
+targetListPawn :: Bool -> V2I -> [[V2I]]
+targetListPawn whitePlayerTurn v@(V2 m n)
+  = let d = if whitePlayerTurn then up else down
+        b = whitePlayerTurn && n == 1 || not whitePlayerTurn && n == 6
+    in map (filter validSquare)
+         [ [v + d] ++ (if b then [ v + d + d ] else [])
+         , [v + d + left]
+         , [v + d + right]
+         ]
+
+canAttack :: Piece -> Bool -> V2I -> V2I -> Bool
+canAttack K _               = canAttackKing
+canAttack Q _               = canAttackQueen
+canAttack R _               = canAttackRook
+canAttack B _               = canAttackBishop
+canAttack N _               = canAttackKnight
+canAttack P whitePlayerTurn = canAttackPawn whitePlayerTurn
+
+canAttackKing :: V2I -> V2I -> Bool
+canAttackKing (V2 a b) (V2 u v) = abs (a-u) < 2 && abs (b-v) < 2
+                                  && not (a == u && b == v)
+
+canAttackQueen :: V2I -> V2I -> Bool
+canAttackQueen v1 v2 = canAttackBishop v1 v2 || canAttackRook v1 v2
+
+canAttackRook :: V2I -> V2I -> Bool
+canAttackRook (V2 a b) (V2 u v) = (a == u || b == v)
+                                  && not (a == u && b == v)
+canAttackBishop :: V2I -> V2I -> Bool
+canAttackBishop (V2 a b) (V2 u v) = abs (a-u) == abs (b-v)
+                                    && not (a == u && b == v)
+
+canAttackKnight :: V2I -> V2I -> Bool
+canAttackKnight (V2 a b) (V2 u v) = let x = abs (a-u)
+                                        y = abs (b-v)
+                                    in min x y == 1 && max x y == 2
+
+canAttackPawn :: Bool -> V2I -> V2I -> Bool
+canAttackPawn isWhitePlayer (V2 a b) (V2 u v)
+  = let d = if isWhitePlayer then 1 else -1
+    in (v-b) == d && abs (a-u) == 1

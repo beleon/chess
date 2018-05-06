@@ -4,6 +4,7 @@ import Data.List (intercalate)
 
 import Player
 import V2
+import Util
 
 type Move = (V2I, V2I)
 
@@ -28,5 +29,3 @@ move = undefined
 
 printBoard :: [V2I] -> String
 printBoard = intercalate "\n" . reverse . foldl (\s (V2 x y) -> replace y (replace x '#' (s!!y)) s) (replicate 8 $ replicate 8 ' ')
-    where replace 0 e (x:xs) = e:xs
-          replace n e (x:xs) = x:replace (n-1) e xs

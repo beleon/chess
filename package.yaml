@@ -1,6 +1,6 @@
 name:                hachex
 version:             0.1.0.0
-github:              "sellleon/hachex"
+github:              "sellleon/chess"
 author:              "Leon Sell"
 copyright:           "2018 Leon Sell"
 
@@ -15,7 +15,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/sellleon/hachex#readme>
+description:         Please see the README on GitHub at <https://github.com/sellleon/chess#readme>
 
 dependencies:
 - base >= 4.7 && < 5

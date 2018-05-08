@@ -10,6 +10,7 @@ import Data.List
 import Foreign.C.Types
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Tuple (swap)
 
 import Model.Util
 import Model.Player
@@ -47,10 +48,12 @@ appLoop renderer g c = do
       close = any closeWindow events
       click = listToMaybe $ catMaybes $ map clickedSquare events :: Maybe V2I
       c' = if click == Nothing then c else if c == Nothing then click else Nothing
+      (self, other) = (if whitePlayerTurn g then id else swap) (whitePlayer g, blackPlayer g)
       (err, g') = if c /= Nothing && click /= Nothing
                   then (either (flip (,) g . Just) ((,) Nothing) $ G.move g (fromJust c, fromJust click))
                   else (Nothing, g)
   fromMaybe (pure ()) $ fmap putStrLn err
+  if c == Nothing && click /= Nothing then drawBoard renderer >> drawPieces renderer g' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
   if err == Nothing && c /= Nothing && click /= Nothing then drawBoard renderer >> drawPieces renderer g' >> present renderer else pure ()
   unless close $ appLoop renderer g' c'
 
@@ -61,6 +64,11 @@ drawBoard r = do
   forM_ (concat c) (\(col, rec) ->
              (rendererDrawColor r $= col)
              >> (fillRect r $ Just $ rec))
+
+drawMoveIndicators :: Renderer -> [V2I] -> IO ()
+drawMoveIndicators r mvs = do
+  rendererDrawColor r $= V4 0 255 0 255
+  forM_ mvs (\(V2 x y) -> fillRect r $ Just $ Rectangle (P $ V2 (fromIntegral $ x * 100 + 40) (fromIntegral $ (7 - y) * 100 + 40)) $ V2 20 20)
 
 drawPieces :: Renderer -> Game -> IO ()
 drawPieces r g = do

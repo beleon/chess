@@ -122,7 +122,23 @@ move from to self other = if elem to $ validTargets from self other
                           else Left "Illegal move!"
 
 initWhitePlayer :: Player
-initWhitePlayer = undefined
+initWhitePlayer =
+  let y = 0
+      ps = [(V2 x (y+1), P) | x <- [0..7]]
+           ++ [(V2 x y, R) | x <- [0,7]]
+           ++ [(V2 x y, N) | x <- [1,6]]
+           ++ [(V2 x y, B) | x <- [2,5]]
+           ++ [(V2 3 y, Q)]
+           ++ [(V2 4 y, K)]
+  in Player (M.fromList ps) True False False False Nothing
 
 initBlackPlayer :: Player
-initBlackPlayer = undefined
+initBlackPlayer =
+  let y = 7
+      ps = [(V2 x (y-1), P) | x <- [0..7]]
+           ++ [(V2 x y, R) | x <- [0,7]]
+           ++ [(V2 x y, N) | x <- [1,6]]
+           ++ [(V2 x y, B) | x <- [2,5]]
+           ++ [(V2 3 y, Q)]
+           ++ [(V2 4 y, K)]
+  in Player (M.fromList ps) False False False False Nothing

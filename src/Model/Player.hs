@@ -98,7 +98,17 @@ unsafeMove from@(V2 a b) to self other
         d = if iw then up else down
         p = sp ! from
         sp' = M.insert to p $ M.delete from sp
+        sp'' = let m = to - from
+                   rfrom = if signum m == V2 1 0 then V2 7 b else V2 0 b
+                   rto = from + signum m
+               in if p == K && abs m == V2 2 0
+                  then M.insert rto R $ M.delete rfrom sp'
+                  else sp'
         op' = M.delete to op
+        op'' = let
+               in if p == P && abs (to - from) == V2 1 1 && M.notMember to op
+                  then M.delete (fromJust $ passant other) op'
+                  else op'
         self' = if p == P && blp && scale d 2 == to - from
                 then self {passant=Just to}
                 else self {passant=Nothing}
@@ -112,8 +122,8 @@ unsafeMove from@(V2 a b) to self other
                             then self'' {closeRookMoved=True}
                        else self''
                   else self''
-        self'''' = self''' {pieces=sp'}
-        other' = other {pieces=op'}
+        self'''' = self''' {pieces=sp''}
+        other' = other {pieces=op''}
     in (self'''', other')
 
 move :: V2I -> V2I -> Player -> Player -> Either String (Player, Player)

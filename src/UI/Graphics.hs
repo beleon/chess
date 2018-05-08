@@ -9,22 +9,24 @@ import Control.Monad
 import Data.List
 import Foreign.C.Types
 import qualified Data.Map as M
+import Data.Maybe
 
 import Model.Util
 import Model.Player
 import Model.Piece (Piece)
 import qualified Model.Piece as Pc
 import Model.Game
+import qualified Model.Game as G
 
 initUI :: Game -> IO ()
 initUI g = do
   initializeAll
   window <- createWindow "Chess" $ defaultWindow {windowInitialSize = V2 800 800}
   renderer <- createRenderer window (-1) defaultRenderer
-  appLoop renderer 255 g
+  appLoop renderer 255 g Nothing
 
-appLoop :: Renderer -> Word8 -> Game -> IO ()
-appLoop renderer p g = do
+appLoop :: Renderer -> Word8 -> Game -> Maybe V2I -> IO ()
+appLoop renderer p g c = do
   events <- pollEvents
   let closeWindow event =
         case eventPayload event of
@@ -39,20 +41,27 @@ appLoop renderer p g = do
             keyboardEventKeyMotion keyboardEvent == Pressed &&
             keysymKeycode (keyboardEventKeysym keyboardEvent) == KeycodeW
           _ -> False
+      toInd (P (V2 x y)) = V2 (fromIntegral x `div` 100) (7 - (fromIntegral y `div` 100))
+      clickedSquare :: Event -> Maybe V2I
+      clickedSquare event =
+        case eventPayload event of
+          MouseButtonEvent mouseEvent -> if mouseButtonEventButton mouseEvent == ButtonLeft  && mouseButtonEventMotion mouseEvent == Released then (pure $ toInd $ mouseButtonEventPos mouseEvent) else Nothing
+          _ -> Nothing
       wPressed = any wPressedEvent events
       qPressed = any closeWindow events
       p' = if wPressed then p - 10 else p
-  --clear renderer
-  --rendererDrawColor renderer $= V4 0255 0 0 255
-  --fillRect renderer $ Just $ Rectangle (P (V2 0 0)) $ V2 100 100
-  --fillRect renderer $ Just $ Rectangle (P (V2 100 100)) $ V2 100 100
-  --present renderer
+      click = listToMaybe $ catMaybes $ map clickedSquare events :: Maybe V2I
+      c' = if click == Nothing then c else if c == Nothing then click else Nothing
+      (err, g') = if c /= Nothing && click /= Nothing
+                  then (either (flip (,) g . Just) ((,) Nothing) $ G.move g (fromJust c, fromJust click))
+                  else (Nothing, g)
+  fromMaybe (pure ()) $ fmap putStrLn err
   drawBoard renderer
-  drawPieces renderer g
+  drawPieces renderer g'
   rendererDrawColor renderer $= V4 0 p 0 255
   if wPressed then clear renderer else pure ()
   present renderer
-  unless qPressed (appLoop renderer p' g)
+  unless qPressed $ appLoop renderer p' g' c'
 
 drawBoard :: Renderer -> IO ()
 drawBoard r = do

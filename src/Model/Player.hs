@@ -1,13 +1,13 @@
-module Player where
+module Model.Player where
 
 import Data.Map (Map, (!))
 import qualified Data.Map as M
 import Data.List
 import Data.Maybe (fromJust)
+import Linear(V2(..))
 
-import V2
-import Piece
-import Util
+import Model.Piece
+import Model.Util
 
 data Player = Player
     { pieces         :: Map V2I Piece
@@ -28,7 +28,7 @@ isCheckMate self other = isInCheck self other
                          && (all null $ map (\v -> validTargets v self other)
                                             $ M.keys $ pieces self)
 
--- Generate valid target list. Ignores if player is in check afterwards.
+-- Generate valid target list.
 validTargets :: V2I -> Player -> Player -> [V2I]
 validTargets v@(V2 m n) self other
   = let sp = pieces self
@@ -89,12 +89,12 @@ isUnderAttack v@(V2 m n) self other
     in any as $ M.toList op
 
 unsafeMove :: V2I -> V2I -> Player -> Player -> (Player, Player)
-unsafeMove from to self other
+unsafeMove from@(V2 a b) to self other
   = let sp = pieces self
         op = pieces other
         iw = isWhite self
-        blp = iw && yVal from == 1 || not iw && yVal from == 6
-        blr = iw && yVal from == 0 || not iw && yVal from == 7
+        blp = iw && b == 1 || not iw && b == 6
+        blr = iw && b == 0 || not iw && b == 7
         d = if iw then up else down
         p = sp ! from
         sp' = M.insert to p $ M.delete from sp
@@ -106,9 +106,9 @@ unsafeMove from to self other
                  then self' {kingMoved=True}
                  else self'
         self''' = if p == R && blr
-                  then if xVal from == 0
+                  then if a == 0
                        then self'' {farRookMoved=True}
-                       else if xVal from == 7
+                       else if a == 7
                             then self'' {closeRookMoved=True}
                        else self''
                   else self''

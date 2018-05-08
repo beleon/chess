@@ -1,10 +1,10 @@
-module Game where
+module Model.Game where
 
 import Data.List (intercalate)
+import Linear (V2(..))
 
-import Player
-import V2
-import Util
+import Model.Player
+import Model.Util
 
 type Move = (V2I, V2I)
 

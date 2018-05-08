@@ -1,7 +1,8 @@
-module Piece where
+module Model.Piece where
 
-import V2
-import Util
+import Linear (V2(..))
+
+import Model.Util
 
 data Piece = Q | K | N | R | P | B deriving (Eq, Show)
 

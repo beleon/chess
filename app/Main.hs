@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import UI.Graphics
 
 main :: IO ()
-main = someFunc
+main = initUI

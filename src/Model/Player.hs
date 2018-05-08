@@ -80,7 +80,7 @@ isUnderAttack :: V2I -> Player -> Player -> Bool
 isUnderAttack v@(V2 m n) self other
   = let sp = pieces self
         op = pieces other
-        iw = isWhite self
+        iw = isWhite other
         as (v2, p) = canAttack p iw v2 v
                      && (not (p == Q || p == B || p == R)
                          || (let b = squaresInBetween v2 v

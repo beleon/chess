@@ -48,14 +48,15 @@ appLoop renderer g c = do
       close = any closeWindow events
       click = listToMaybe $ catMaybes $ map clickedSquare events :: Maybe V2I
       c' = if click == Nothing then c else if c == Nothing then click else Nothing
+      c'' = if click /= Nothing && c == Nothing && M.notMember (fromJust click) (pieces self) then Nothing else c'
       (self, other) = (if whitePlayerTurn g then id else swap) (whitePlayer g, blackPlayer g)
       (err, g') = if c /= Nothing && click /= Nothing
                   then (either (flip (,) g . Just) ((,) Nothing) $ G.move g (fromJust c, fromJust click))
                   else (Nothing, g)
   fromMaybe (pure ()) $ fmap putStrLn err
-  if c == Nothing && click /= Nothing && M.member (fromJust click) (pieces self) then drawBoard renderer >> drawPieces renderer g' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
-  if err == Nothing && c /= Nothing && click /= Nothing then drawBoard renderer >> drawPieces renderer g' >> present renderer else pure ()
-  unless close $ appLoop renderer g' c'
+  if c == Nothing && click /= Nothing && M.member (fromJust click) (pieces self) then drawBoard renderer >> drawPickIndicator renderer (fromJust click) >> drawPieces renderer g' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
+  if err /= Nothing || (c /= Nothing && click /= Nothing) then drawBoard renderer >> drawPieces renderer g' >> present renderer else pure ()
+  unless close $ appLoop renderer g' c''
 
 drawBoard :: Renderer -> IO ()
 drawBoard r = do
@@ -64,6 +65,12 @@ drawBoard r = do
   forM_ (concat c) (\(col, rec) ->
              (rendererDrawColor r $= col)
              >> (fillRect r $ Just $ rec))
+
+drawPickIndicator :: Renderer -> V2I -> IO ()
+drawPickIndicator r (V2 x y) = do
+  let c = if even (y + x `mod` 2) then brown + V4 20 20 20 0 else white - V4 20 20 20 0
+  rendererDrawColor r $= c
+  fillRect r $ Just $ Rectangle (P $ V2 (fromIntegral $ x * 100) (fromIntegral $ (7 - y) * 100)) (V2 100 100)
 
 drawMoveIndicators :: Renderer -> [V2I] -> IO ()
 drawMoveIndicators r mvs = do

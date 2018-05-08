@@ -42,7 +42,8 @@ validTargets v@(V2 m n) self other
                 (x:r) = tl
                 x' = takeWhile (\v -> not (M.member v sp || M.member v op)) x
                 r' = map (filter (\v -> M.member v op || tp v)) r
-            in concat (x':r')
+                ica nv = uncurry isInCheck $ unsafeMove v nv self other
+            in filter (not . ica) $ concat (x':r')
        else let btake []     = []
                 btake (x:xs) = if M.member x sp then []
                                else if M.member x op then [x]

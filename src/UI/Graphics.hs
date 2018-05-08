@@ -53,7 +53,7 @@ appLoop renderer g c = do
                   then (either (flip (,) g . Just) ((,) Nothing) $ G.move g (fromJust c, fromJust click))
                   else (Nothing, g)
   fromMaybe (pure ()) $ fmap putStrLn err
-  if c == Nothing && click /= Nothing then drawBoard renderer >> drawPieces renderer g' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
+  if c == Nothing && click /= Nothing && M.member (fromJust click) (pieces self) then drawBoard renderer >> drawPieces renderer g' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
   if err == Nothing && c /= Nothing && click /= Nothing then drawBoard renderer >> drawPieces renderer g' >> present renderer else pure ()
   unless close $ appLoop renderer g' c'
 

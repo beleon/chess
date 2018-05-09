@@ -6,7 +6,9 @@ import qualified Data.Map as M
 import Data.Tuple (swap)
 
 import Model.Player
+import Model.Piece
 import Model.Util
+import qualified Model.Player as Pl
 
 type Move = (V2I, V2I)
 
@@ -46,3 +48,9 @@ move g (v1, v2) =
 
 printBoard :: [V2I] -> String
 printBoard = intercalate "\n" . reverse . foldl (\s (V2 x y) -> replace y (replace x '#' (s!!y)) s) (replicate 8 $ replicate 8 ' ')
+
+putPiece :: Bool -> V2I -> Piece -> Game -> Game
+putPiece iw v p g =
+  let wp' = (if iw then (Pl.putPiece v p) else id) $ whitePlayer g
+      bp' = (if not iw then (Pl.putPiece v p) else id) $ blackPlayer g
+  in g {whitePlayer=wp', blackPlayer=bp'}

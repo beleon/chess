@@ -27,10 +27,10 @@ initUI g = do
   drawBoard renderer
   drawPieces renderer g
   present renderer
-  appLoop renderer g Nothing
+  appLoop renderer g Nothing False
 
-appLoop :: Renderer -> Game -> Maybe V2I -> IO ()
-appLoop renderer g c = do
+appLoop :: Renderer -> Game -> Maybe V2I -> Bool -> IO ()
+appLoop renderer g c s = do
   events <- pollEvents
   let closeWindow event =
         case eventPayload event of
@@ -39,24 +39,47 @@ appLoop renderer g c = do
             keysymKeycode (keyboardEventKeysym keyboardEvent) == KeycodeQ
           WindowClosedEvent (WindowClosedEventData window) -> True
           _ -> False
-      toInd (P (V2 x y)) = V2 (fromIntegral x `div` 100) (7 - (fromIntegral y `div` 100))
-      clickedSquare :: Event -> Maybe V2I
+      toInd (V2 x y) = V2 (fromIntegral x `div` 100) (7 - (fromIntegral y `div` 100))
       clickedSquare event =
         case eventPayload event of
-          MouseButtonEvent mouseEvent -> if mouseButtonEventButton mouseEvent == ButtonLeft  && mouseButtonEventMotion mouseEvent == Released then (pure $ toInd $ mouseButtonEventPos mouseEvent) else Nothing
+          MouseButtonEvent mouseEvent -> if mouseButtonEventButton mouseEvent == ButtonLeft  && mouseButtonEventMotion mouseEvent == Released then (pure $ (\(P v) -> v) $ mouseButtonEventPos mouseEvent) else Nothing
           _ -> Nothing
       close = any closeWindow events
-      click = listToMaybe $ catMaybes $ map clickedSquare events :: Maybe V2I
-      c' = if click == Nothing then c else if c == Nothing then click else Nothing
-      c'' = if click /= Nothing && c == Nothing && M.notMember (fromJust click) (pieces self) then Nothing else c'
+      rawClick = listToMaybe $ catMaybes $ map clickedSquare events
+      click = fmap toInd rawClick
       (self, other) = (if whitePlayerTurn g then id else swap) (whitePlayer g, blackPlayer g)
-      (err, g') = if c /= Nothing && click /= Nothing
+      isMove = not s && click /= Nothing && c /= Nothing
+      isLegalMove = isMove && elem (fromJust click) (validTargets (fromJust c) self other)
+      legalSelect = fromMaybe False $ fmap (\(V2 x y) -> x >= 200 && x <= 600 && y >= 350 && y <= 450) rawClick
+      c' = if isMove || s && not s' then Nothing else if click == Nothing then c else if M.member (fromJust click) (pieces self) then click else Nothing
+      (err, g') = if not s && c /= Nothing && click /= Nothing
                   then (either (flip (,) g . Just) ((,) Nothing) $ G.move g (fromJust c, fromJust click))
                   else (Nothing, g)
+      s' = if click == Nothing then s else if s && legalSelect then False else s || (isLegalMove && M.lookup (fromJust c) (pieces self) == Just Pc.P && ((whitePlayerTurn g && (\(V2 _ y) -> y == 7) (fromJust click)) || (not (whitePlayerTurn g) && (\(V2 _ y) -> y == 0) (fromJust click))))
+      g'' = if s && legalSelect then let p = case (\(V2 x _) -> x) (fromJust rawClick) of
+                                               a | a >= 500 -> Pc.N
+                                                 | a >= 400 -> Pc.B
+                                                 | a >= 300 -> Pc.R
+                                                 | a >= 200 -> Pc.Q
+                                     in G.putPiece (not (whitePlayerTurn g')) (snd $ head $ history g') p g'
+                                else g'
   fromMaybe (pure ()) $ fmap putStrLn err
-  if c == Nothing && click /= Nothing && M.member (fromJust click) (pieces self) then drawBoard renderer >> drawPickIndicator renderer (fromJust click) >> drawPieces renderer g' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
-  if err /= Nothing || (c /= Nothing && click /= Nothing) then drawBoard renderer >> drawPieces renderer g' >> present renderer else pure ()
-  unless close $ appLoop renderer g' c''
+  if not s' && c == Nothing && click /= Nothing && M.member (fromJust click) (pieces self) then drawBoard renderer >> drawPickIndicator renderer (fromJust click) >> drawPieces renderer g'' >> drawMoveIndicators renderer (validTargets (fromJust click) self other) >> present renderer else pure ()
+  if not s' && (err /= Nothing || (c /= Nothing && click /= Nothing)) then drawBoard renderer >> drawPieces renderer g'' >> present renderer else pure ()
+  if s' && not s then drawBoard renderer >> drawPieces renderer g'' >> drawPieceSelection (whitePlayerTurn g) renderer >> present renderer else pure ()
+  if s && not s' then drawBoard renderer >> drawPieces renderer g'' >> present renderer else pure ()
+  unless close $ appLoop renderer g'' c' s'
+
+drawPieceSelection :: Bool -> Renderer -> IO ()
+drawPieceSelection iw r = do
+  rendererDrawColor r $= V4 200 200 200 255
+  fillRect r $ Just $ Rectangle (P $ V2 200 350) (V2 400 100)
+  rendererDrawColor r $= V4 255 200 200 255
+  if iw then (rendererDrawColor r $= V4 255 255 255 255) else (rendererDrawColor r $= V4 0 0 0 255)
+  drawPiece' r (V2 200 350) Pc.Q
+  drawPiece' r (V2 300 350) Pc.R
+  drawPiece' r (V2 400 350) Pc.B
+  drawPiece' r (V2 500 350) Pc.N
 
 drawBoard :: Renderer -> IO ()
 drawBoard r = do
@@ -94,6 +117,13 @@ drawPiece r (V2 x y) p = do
       pl = linify p
       pl' = zip (last pl:init pl) pl
       pl'' = map (\(P v1, P v2) -> (P $ v1 + v', P $ v2 + v')) pl'
+  forM_ pl'' (\(p1, p2) -> drawLine r p1 p2)
+
+drawPiece' :: Renderer -> V2 CInt -> Piece -> IO ()
+drawPiece' r v p = do
+  let pl = linify p
+      pl' = zip (last pl:init pl) pl
+      pl'' = map (\(P v1, P v2) -> (P $ v1 + v, P $ v2 + v)) pl'
   forM_ pl'' (\(p1, p2) -> drawLine r p1 p2)
 
 brown :: V4 Word8

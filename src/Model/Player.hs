@@ -127,10 +127,8 @@ unsafeMove from@(V2 a b) to self other
         other' = other {pieces=op''}
     in (self'''', other')
 
-move :: V2I -> V2I -> Player -> Player -> Either String (Player, Player)
-move from to self other = if elem to $ validTargets from self other
-                          then Right $ unsafeMove from to self other
-                          else Left "Illegal move!"
+putPiece :: V2I -> Piece -> Player -> Player
+putPiece v2 p pl = pl {pieces=M.insert v2 p $ pieces pl}
 
 initWhitePlayer :: Player
 initWhitePlayer =

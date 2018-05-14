@@ -18,6 +18,7 @@ import Model.Piece (Piece)
 import qualified Model.Piece as Pc
 import Model.Game
 import qualified Model.Game as G
+import UI.Color
 
 initUI :: Game -> IO ()
 initUI g = do
@@ -84,14 +85,14 @@ drawPieceSelection iw r = do
 drawBoard :: Renderer -> IO ()
 drawBoard r = do
   let rects = [[Rectangle (P (V2 x y)) $ V2 (x+100) (y+100) | x <- [0,100..700]] | y <- [0,100..700]]
-      (_, c) = mapAccumL (\a b -> (tail a, zip a b)) (cycle [white, brown]) rects :: ([V4 Word8], [[(V4 Word8, Rectangle CInt)]])
+      (_, c) = mapAccumL (\a b -> (tail a, zip a b)) (cycle [light, dark]) rects :: ([V4 Word8], [[(V4 Word8, Rectangle CInt)]])
   forM_ (concat c) (\(col, rec) ->
              (rendererDrawColor r $= col)
              >> (fillRect r $ Just $ rec))
 
 drawPickIndicator :: Renderer -> V2I -> IO ()
 drawPickIndicator r (V2 x y) = do
-  let c = if even (y + x `mod` 2) then brown + V4 20 20 20 0 else white - V4 20 20 20 0
+  let c = if even (y + x `mod` 2) then dark + V4 20 20 20 0 else light - V4 20 20 20 0
   rendererDrawColor r $= c
   fillRect r $ Just $ Rectangle (P $ V2 (fromIntegral $ x * 100) (fromIntegral $ (7 - y) * 100)) (V2 100 100)
 
@@ -125,12 +126,6 @@ drawPiece' r v p = do
       pl' = zip (last pl:init pl) pl
       pl'' = map (\(P v1, P v2) -> (P $ v1 + v, P $ v2 + v)) pl'
   forM_ pl'' (\(p1, p2) -> drawLine r p1 p2)
-
-brown :: V4 Word8
-brown = V4 181 136 99 255
-
-white :: V4 Word8
-white = V4 240 217 181 255
 
 linify :: Piece -> [Point V2 CInt]
 linify Pc.Q = queen
